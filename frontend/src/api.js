@@ -1,23 +1,26 @@
-// Thin client for the FastAPI backend (proxied at /api in dev).
-const BASE = "/api";
+// Static data client. Reads precomputed JSON (works on GitHub Pages with no
+// backend). BASE_URL handles the repo subpath in production.
+const BASE = `${import.meta.env.BASE_URL}data`;
 
 export async function getCategories() {
-  const r = await fetch(`${BASE}/categories`);
+  const r = await fetch(`${BASE}/categories.json`);
   if (!r.ok) throw new Error("kategoriler yüklenemedi");
   return r.json();
 }
 
-export async function getReal({ category, source, base, start, end }) {
-  const params = new URLSearchParams({ category, source });
-  if (base) params.set("base", base);
-  if (start) params.set("start", start);
-  if (end) params.set("end", end);
-  const r = await fetch(`${BASE}/real?${params}`);
+// `base`/`start`/`end` are applied client-side, so only category+source pick
+// the file here.
+export async function getReal({ category, source }) {
+  const r = await fetch(`${BASE}/real/${category}__${source}.json`);
   if (!r.ok) throw new Error("veri alınamadı");
   return r.json();
 }
 
 export async function getHealth() {
-  const r = await fetch(`${BASE}/health`);
-  return r.json();
+  try {
+    const r = await fetch(`${BASE}/health.json`);
+    return r.json();
+  } catch {
+    return { catalog_configured: true };
+  }
 }

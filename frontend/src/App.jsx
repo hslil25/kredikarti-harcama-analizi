@@ -91,11 +91,11 @@ export default function App() {
     if (!category) return;
     setLoading(true);
     setError("");
-    getReal({ category, source, base: base || undefined })
+    getReal({ category, source })
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [category, source, base]);
+  }, [category, source]);
 
   const points = data?.points ?? [];
   const summary = data?.summary;
@@ -111,10 +111,27 @@ export default function App() {
   );
   const hasReal = points.some((p) => p.real_avg_ticket != null);
 
-  // Build the average-ticket chart data: optional Kasım-2021 indexing + smoothing.
+  // Build the average-ticket chart data: client-side base rebasing + optional
+  // Eylül-2021 indexing + smoothing.
   const ticket = useMemo(() => {
-    let real = points.map((p) => p.real_avg_ticket);
     const nom = points.map((p) => p.nominal_avg_ticket); // always raw ₺, not indexed
+    // real(t) = nominal(t) * CPI(base) / CPI(t); base = chosen week or latest.
+    const cpis = points.map((p) => p.cpi);
+    let cpiBase = null;
+    if (base) {
+      const bi = points.findIndex((p) => p.date === base);
+      if (bi !== -1) cpiBase = cpis[bi];
+    }
+    if (cpiBase == null) {
+      for (let i = cpis.length - 1; i >= 0; i--) {
+        if (cpis[i] != null) { cpiBase = cpis[i]; break; }
+      }
+    }
+    let real = points.map((p) =>
+      p.nominal_avg_ticket != null && p.cpi != null && cpiBase != null
+        ? (p.nominal_avg_ticket * cpiBase) / p.cpi
+        : null
+    );
     let indexed = false;
     let refDate = null;
 
@@ -138,7 +155,7 @@ export default function App() {
       nomS: nomS[i],
     }));
     return { rows, indexed, refDate, smoothed: w > 0 };
-  }, [points, smooth, indexBase]);
+  }, [points, smooth, indexBase, base]);
 
   // Polarization vs market: count ratio + avg-ticket ratio (smoothed).
   const pol = useMemo(() => {
@@ -281,7 +298,7 @@ export default function App() {
         <div className="meta">
           <span className="chip">{data.cc_label}</span>
           <span>Kaynak: {srcLabel}</span>
-          <span>Baz dönem: {data.base_date ?? "—"}</span>
+          <span>Baz dönem: {base || data.base_date || "—"}</span>
           <span>{points.length} hafta</span>
         </div>
       )}

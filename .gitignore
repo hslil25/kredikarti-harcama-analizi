@@ -15,5 +15,8 @@ node_modules/
 dist/
 .vite/
 
+# generated static data (intermediate; built copy lives in /docs)
+frontend/public/data/
+
 # os
 .DS_Store

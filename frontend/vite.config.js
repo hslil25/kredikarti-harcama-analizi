@@ -1,17 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// Served from GitHub Pages at /<repo>/ ; build output goes to repo-root /docs.
 export default defineConfig({
+  base: "/kredikarti-harcama-analizi/",
   plugins: [react()],
-  server: {
-    port: 5173,
-    // Proxy API calls to the FastAPI backend during development.
-    proxy: {
-      "/api": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
-      },
-    },
+  build: {
+    outDir: "../docs",
+    emptyOutDir: true,
   },
+  server: { port: 5173 },
 });
